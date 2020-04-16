@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Charity List</title>
+    <link rel='stylesheet' href='/stylesheets/style.css' />
+  </head>
+  <body>
+    <h1>Charity List</h1>
+    <ul>
+      <%
+        var list = '';
+        for (i = 0; i < charitylist.length; i++) {
+          list += '<li><a href= "mailto:charitylist[i].email">' + charitylist[i].charityname + '</a></li>';
+        }
+      %>
+      <%- list %>
+    </ul>
+  </body>
+</html>
