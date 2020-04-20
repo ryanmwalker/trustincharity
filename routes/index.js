@@ -6,16 +6,6 @@ router.get('/', function(req, res, next) {
   res.render('index', { title: 'Express' });
 });
 
-/* GET charity page. */
-router.get('/charity', function(req, res) {
-  res.render('charity', { title: 'Apply' });
-});
-
-/* GET donate page. */
-router.get('/donate', function(req, res) {
-  res.redirect("charitylist");
-});
-
 
 /* GET charitylist page. */
 router.get('/charitylist', function(req, res) {
