@@ -21,7 +21,7 @@ App = {
   },
 
 render: function() {
-  var electionInstance;
+  var donationInstance;
   var loader = $("#loader");
   var content = $("#content");
 
@@ -37,48 +37,58 @@ render: function() {
   });
 
   // Load contract data
-  App.contracts.Election.deployed().then(function(instance) {
-    electionInstance = instance;
-    return electionInstance.candidatesCount();
-  }).then(function(candidatesCount) {
-    var candidatesResults = $("#candidatesResults");
-    candidatesResults.empty();
+  App.contracts.Donations.deployed().then(function(instance) {
+    donationInstance = instance;
+    return donationInstance.charitiesCount();
+  }).then(function(charitiesCount) {
+    var charitiesResults = $("#charitiesResults");
+    charitiesResults.empty();
 
-    var candidatesSelect = $('#candidatesSelect');
-    candidatesSelect.empty();
+    var charitiesSelect = $('#charitiesSelect');
+    charitiesSelect.empty();
 
-    for (var i = 1; i <= candidatesCount; i++) {
-      electionInstance.candidates(i).then(function(candidate) {
-        var id = candidate[0];
-        var name = candidate[1];
-        var voteCount = candidate[2];
+    for (var i = 1; i <= charitiesCount; i++) {
+      donationInstance.charities(i).then(function(charity) {
+        var id = charity[0];
+        var name = charity[1];
+        var donationCount = charity[2];
 
-        // Render candidate Result
-        var candidateTemplate = "<tr><th>" + id + "</th><td>" + name + "</td><td>" + voteCount + "</td></tr>"
-        candidatesResults.append(candidateTemplate);
+        // Render charity Result
+        var charityTemplate = "<tr><th>" + id + "</th><td>" + name + "</td><td>" + donationCount + "</td></tr>"
+        charitiesResults.append(charityTemplate);
 
-        // Render candidate ballot option
-        var candidateOption = "<option value='" + id + "' >" + name + "</ option>"
-        candidatesSelect.append(candidateOption);
+        // Render charity ballot option
+        var charityOption = "<option value='" + id + "' >" + name + "</ option>"
+        charitiesSelect.append(charityOption);
       });
     }
-    return electionInstance.voters(App.account);
-  }).then(function(hasVoted) {
-    // Do not allow a user to vote
-    if(hasVoted) {
-      $('form').hide();
-    }
+    return donationInstance.donors(App.account);
+  }).then(function(result) {
     loader.hide();
     content.show();
   }).catch(function(error) {
-    console.warn(error);
+    console.error(error);
   });
 },
 
-castVote: function() {
-    var candidateId = $('#candidatesSelect').val();
-    App.contracts.Election.deployed().then(function(instance) {
-      return instance.vote(candidateId, { from: App.account });
+addCharity:function() {
+  var charityName = $('#charitiesAdd').val();
+  App.contracts.Donations.deployed().then(function(instance) {
+    return instance.addCharity(charityName, { from: App.account });
+  }).then(function(result) {
+    $("#content").hide();
+    $("#loader").show();
+  }).catch(function(err) {
+    console.error(err);
+  });
+},
+
+submitDonation: function() {
+    var charityId = $('#charitiesSelect').val();
+    var donateAmount = $('#donateAmount').val();
+    
+    App.contracts.Donations.deployed().then(function(instance) {
+      return instance.donate(charityId, donateAmount, { from: App.account, value: web3.toWei(donateAmount.toString(), 'Ether') });
     }).then(function(result) {
       // Wait for votes to update
       $("#content").hide();
@@ -89,8 +99,19 @@ castVote: function() {
   },
 
 listenForEvents: function() {
-  App.contracts.Election.deployed().then(function(instance) {
-    instance.votedEvent({}, {
+  App.contracts.Donations.deployed().then(function(instance) {
+    instance.donatedEvent({}, {
+      fromBlock: 0,
+      toBlock: 'latest'
+    }).watch(function(error, event) {
+      console.log("event triggered", event)
+      // Reload when a new vote is recorded
+      App.render();
+    });
+  });
+
+  App.contracts.Donations.deployed().then(function(instance) {
+    instance.charityCreated({}, {
       fromBlock: 0,
       toBlock: 'latest'
     }).watch(function(error, event) {
@@ -102,11 +123,11 @@ listenForEvents: function() {
 }, 
 
 initContract: function() {
-  $.getJSON("Election.json", function(election) {
+  $.getJSON("Donations.json", function(donation) {
     // Instantiate a new truffle contract from the artifact
-    App.contracts.Election = TruffleContract(election);
+    App.contracts.Donations = TruffleContract(donation);
     // Connect provider to interact with contract
-    App.contracts.Election.setProvider(App.web3Provider);
+    App.contracts.Donations.setProvider(App.web3Provider);
 
     App.listenForEvents();
 

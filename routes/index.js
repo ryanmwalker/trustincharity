@@ -1,5 +1,6 @@
 var express = require('express');
 var router = express.Router();
+var fs = require('fs');
 
 /* GET home page. */
 router.get('/', function(req, res, next) {
@@ -47,10 +48,15 @@ router.post('/apply', function(req, res) {
             res.send("There was a problem adding the information to the database.");
         }
         else {
+
+        fs.appendFile('./charities.json', JSON.stringify(doc), (err) => {
+            if (err) console.log('Error writing file:', err)
+        })
             // And forward to success page
             res.redirect("charitylist");
         }
     });
+
 
 });
 
